@@ -8,8 +8,6 @@ class Board:
     def __init__(self):
         self.grid = [[0] * SIZE for _ in range(SIZE)]
         self.score = 0
-        self.last_merges = 0  # merges in the most recent move
-        self.last_gain = 0    # points gained in the most recent move
         self.add_random_tile()
         self.add_random_tile()
 
@@ -21,7 +19,7 @@ class Board:
 
     @staticmethod
     def slide_line(line):
-        """Slide a line toward index 0. Each ORIGINAL tile merges at most once.
+        """Slide a line toward index 0. Each original tile merges at most once.
 
         Returns (new_line, points_gained, merge_count).
         """
@@ -36,7 +34,7 @@ class Board:
                 result.append(merged)
                 gained += merged
                 merges += 1
-                i += 2  # skip BOTH source tiles; merged tile can't merge again
+                i += 2  # skip both source tiles so the new tile can't merge again
             else:
                 result.append(values[i])
                 i += 1
@@ -44,10 +42,8 @@ class Board:
 
     def _slide(self, line):
         """Slide one line, add merge points to the score, return the new line."""
-        new, gained, merges = self.slide_line(line)
+        new, gained, _merges = self.slide_line(line)
         self.score += gained
-        self.last_gain += gained
-        self.last_merges += merges
         return new
 
     def move_left(self):

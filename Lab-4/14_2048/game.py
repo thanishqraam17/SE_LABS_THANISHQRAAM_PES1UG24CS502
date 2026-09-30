@@ -5,7 +5,7 @@ class Game:
     def __init__(self):
         self.board = Board()
         self.best_score = 0
-        self.history = []
+        self.undo_state = None  # state before the last successful move
 
     def display(self):
         print("\n" + "+------+------+------+------+")
@@ -20,10 +20,21 @@ class Game:
                  "w": self.board.move_up, "s": self.board.move_down}
         if key not in moves:
             return False
+        before = self.board.snapshot()
         changed = moves[key]()
         if changed:
+            self.undo_state = before
             self.board.add_random_tile()
+            self.best_score = max(self.best_score, self.board.score)
         return changed
+
+    def undo(self):
+        """Restore board and score from before the last move. No tile is spawned."""
+        if self.undo_state is None:
+            return False
+        self.board.restore(self.undo_state)
+        self.undo_state = None  # only one level
+        return True
 
     def run(self):
         print("2048 — W/A/S/D to move, U to undo, Q to quit.")
@@ -39,12 +50,11 @@ class Game:
             if key == "q":
                 return
             if key == "u":
-                print("Undo is not implemented yet.")
+                if not self.undo():
+                    print("Nothing to undo.")
                 continue
             if key not in ("w", "a", "s", "d"):
                 print("Invalid command. Use W/A/S/D, U to undo, Q to quit.")
                 continue
-            if self.move(key):
-                self.best_score = max(self.best_score, self.board.score)
-            else:
+            if not self.move(key):
                 print("That move changes nothing. Try another direction.")
