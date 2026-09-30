@@ -1,12 +1,15 @@
 import random
 
 SIZE = 4
+WIN_TILE = 2048
 
 
 class Board:
     def __init__(self):
         self.grid = [[0] * SIZE for _ in range(SIZE)]
         self.score = 0
+        self.last_merges = 0  # merges in the most recent move
+        self.last_gain = 0    # points gained in the most recent move
         self.add_random_tile()
         self.add_random_tile()
 
@@ -18,20 +21,40 @@ class Board:
 
     @staticmethod
     def slide_line(line):
+        """Slide a line toward index 0. Each ORIGINAL tile merges at most once.
+
+        Returns (new_line, points_gained, merge_count).
+        """
         values = [x for x in line if x]
         result = []
-        for value in values:
-            if result and result[-1] == value:
-                result[-1] *= 2  # intentional double-merge bug
+        gained = 0
+        merges = 0
+        i = 0
+        while i < len(values):
+            if i + 1 < len(values) and values[i] == values[i + 1]:
+                merged = values[i] * 2
+                result.append(merged)
+                gained += merged
+                merges += 1
+                i += 2  # skip BOTH source tiles; merged tile can't merge again
             else:
-                result.append(value)
-        return result + [0] * (SIZE - len(result))
+                result.append(values[i])
+                i += 1
+        return result + [0] * (SIZE - len(result)), gained, merges
+
+    def _slide(self, line):
+        """Slide one line, add merge points to the score, return the new line."""
+        new, gained, merges = self.slide_line(line)
+        self.score += gained
+        self.last_gain += gained
+        self.last_merges += merges
+        return new
 
     def move_left(self):
         changed = False
         for r in range(SIZE):
             old = self.grid[r][:]
-            self.grid[r] = self.slide_line(old)
+            self.grid[r] = self._slide(old)
             changed |= old != self.grid[r]
         return changed
 
@@ -39,7 +62,7 @@ class Board:
         changed = False
         for r in range(SIZE):
             old = self.grid[r][:]
-            self.grid[r] = list(reversed(self.slide_line(list(reversed(old)))))
+            self.grid[r] = list(reversed(self._slide(list(reversed(old)))))
             changed |= old != self.grid[r]
         return changed
 
@@ -47,7 +70,7 @@ class Board:
         changed = False
         for c in range(SIZE):
             old = [self.grid[r][c] for r in range(SIZE)]
-            new = self.slide_line(old)
+            new = self._slide(old)
             for r in range(SIZE):
                 self.grid[r][c] = new[r]
             changed |= old != new
@@ -57,11 +80,23 @@ class Board:
         changed = False
         for c in range(SIZE):
             old = [self.grid[r][c] for r in range(SIZE)]
-            new = list(reversed(self.slide_line(list(reversed(old)))))
+            new = list(reversed(self._slide(list(reversed(old)))))
             for r in range(SIZE):
                 self.grid[r][c] = new[r]
             changed |= old != new
         return changed
+
+    def snapshot(self):
+        """Copy of the current state (grid + score) for one-level undo."""
+        return [row[:] for row in self.grid], self.score
+
+    def restore(self, snap):
+        grid, score = snap
+        self.grid = [row[:] for row in grid]
+        self.score = score
+
+    def has_won(self):
+        return any(tile >= WIN_TILE for row in self.grid for tile in row)
 
     def can_move(self):
         if any(0 in row for row in self.grid):
