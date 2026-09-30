@@ -8,6 +8,8 @@ class Board:
     def __init__(self):
         self.grid = [[0] * SIZE for _ in range(SIZE)]
         self.score = 0
+        self.last_merges = 0  # merges in the most recent move
+        self.last_gain = 0    # points gained in the most recent move
         self.add_random_tile()
         self.add_random_tile()
 
@@ -41,9 +43,11 @@ class Board:
         return result + [0] * (SIZE - len(result)), gained, merges
 
     def _slide(self, line):
-        """Slide one line, add merge points to the score, return the new line."""
-        new, gained, _merges = self.slide_line(line)
+        """Slide one line, update score and the per-move merge counters."""
+        new, gained, merges = self.slide_line(line)
         self.score += gained
+        self.last_gain += gained
+        self.last_merges += merges
         return new
 
     def move_left(self):
