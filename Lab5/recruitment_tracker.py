@@ -17,14 +17,15 @@ conn.execute(
 def add_applicant(name, role, expected_salary, status="applied"):
     """Insert a new applicant using a parameterised query."""
     conn.execute(
-        "INSERT INTO applicants (name, role, expected_salary, status) VALUES (?, ?, ?, ?)",
+        "INSERT INTO applicants (name, role, expected_salary, status) "
+        "VALUES (?, ?, ?, ?)",
         (name, role, expected_salary, status),
     )
     conn.commit()
 
 
 def shortlist(role, salary_limit):
-    """Return names of applicants for `role` whose expected salary fits the limit."""
+    """Return names of applicants for `role` within the salary limit."""
     rows = conn.execute(
         "SELECT name, expected_salary FROM applicants WHERE role = ?", (role,)
     ).fetchall()
@@ -32,9 +33,12 @@ def shortlist(role, salary_limit):
 
 
 def update_status(applicant_id, status):
-    """Update an applicant's hiring status. Return True on success, False on failure."""
+    """Update an applicant's hiring status; return True on success."""
     try:
-        conn.execute("UPDATE applicants SET status = ? WHERE id = ?", (status, applicant_id))
+        conn.execute(
+            "UPDATE applicants SET status = ? WHERE id = ?",
+            (status, applicant_id),
+        )
         conn.commit()
     except sqlite3.Error as err:
         logging.error("Could not update applicant %s: %s", applicant_id, err)
@@ -47,7 +51,9 @@ def export_report(path):
     """Write name, role and status of every applicant to a CSV file."""
     with open(path, "w", encoding="utf-8", newline="") as report_file:
         writer = csv.writer(report_file)
-        writer.writerows(conn.execute("SELECT name, role, status FROM applicants"))
+        writer.writerows(
+            conn.execute("SELECT name, role, status FROM applicants")
+        )
 
 
 def count_by_status(status):
